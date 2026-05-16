@@ -16,8 +16,15 @@ npm run pipeline
 
 Outputs land in `output/`:
 
-- `output/nyc-arts-index.json` — ranked top-100, structured
-- `output/nyc-arts-index.md`   — ranked top-100, Markdown table
+- `output/nyc-arts-index.json` — ranked top-N, structured (N defaults to 100)
+- `output/nyc-arts-index.md`   — ranked top-N, Markdown table
+- `output/nyc-arts-index-full.json` — complete untruncated dataset, every ranked org
+- `output/nyc-arts-index-full.md`   — Markdown table of every ranked org
+
+The top-N cutoff is configurable via the `RANK_LIMIT` env var (default `100`).
+The `-full` outputs are always written and contain every org with a valid
+Instagram follower count, regardless of `RANK_LIMIT`. See
+[docs/running.md](docs/running.md) for details.
 
 ## Pipeline
 

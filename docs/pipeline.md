@@ -12,9 +12,10 @@ done" and exits.
 └──────────┘    └──────────┘    └──────────┘    └──────────┘    └──────────┘
      │              │                │                │                │
      ▼              ▼                ▼                ▼                ▼
-phase1-         phase2-           phase3-         output/         output/
-candidates     with-handles    with-followers   nyc-arts-       nyc-arts-
-.json          .json           .json            index.json       index.md
+phase1-         phase2-           phase3-         output/          output/
+candidates     with-handles    with-followers   nyc-arts-        nyc-arts-
+.json          .json           .json            index.json        index.md
+                                                 + -full.json      + -full.md
 ```
 
 ## Phase 1 — Discovery
@@ -71,7 +72,9 @@ The phase merges the follower counts back into the candidate records.
 
 **Script:** `src/phase4-rank.ts`
 **Input:** `data/phase3-with-followers.json`
-**Output:** `output/nyc-arts-index.json`
+**Outputs:**
+- `output/nyc-arts-index.json` — top N (respects `RANK_LIMIT`)
+- `output/nyc-arts-index-full.json` — every ranked org, no cutoff
 
 Filters and sorts:
 
@@ -80,13 +83,25 @@ Filters and sorts:
    etc.) — guards against Google Maps false-positives.
 3. Drop orgs missing an Instagram handle or follower count.
 4. Sort by `instagram_followers` descending.
-5. Take the top 100, assign `rank: 1..100`.
+5. Assign `rank: 1..N` over the full ranked set, then slice the top N for the
+   primary output. Both files carry the same `rank` numbering.
+
+### Configuration
+
+| Env var | Default | Purpose |
+|---|---|---|
+| `RANK_LIMIT` | `100` | Cutoff for the primary `nyc-arts-index.json`. The full file (`nyc-arts-index-full.json`) is always written with every ranked org regardless of this value. |
 
 ## Phase 5 — Output
 
 **Script:** `src/phase5-output.ts`
-**Input:** `output/nyc-arts-index.json`
-**Output:** `output/nyc-arts-index.md`
+**Inputs:**
+- `output/nyc-arts-index.json` (top N)
+- `output/nyc-arts-index-full.json` (all orgs)
+
+**Outputs:**
+- `output/nyc-arts-index.md` — Markdown table for the top N
+- `output/nyc-arts-index-full.md` — Markdown table for the full ranked set
 
 Renders the JSON as a Markdown table with rank, name, category, borough,
 follower count, Instagram link, and website link.

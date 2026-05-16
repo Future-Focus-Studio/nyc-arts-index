@@ -22,6 +22,10 @@ cp .env.example .env
 # Edit .env so it reads: APIFY_TOKEN=apify_api_...
 ```
 
+To expand beyond 100, set `RANK_LIMIT=200` (or any N) in your `.env` before
+running phase4 or the full pipeline. The full untruncated ranking is always
+written to `output/nyc-arts-index-full.json` regardless of `RANK_LIMIT`.
+
 ## Run the full pipeline
 
 ```bash
@@ -35,8 +39,10 @@ phases whose output file already exists).
 
 Final outputs:
 
-- `output/nyc-arts-index.json` — ranked top-100 JSON
-- `output/nyc-arts-index.md` — Markdown table
+- `output/nyc-arts-index.json` — ranked top-N JSON (N = `RANK_LIMIT`, default 100)
+- `output/nyc-arts-index.md` — Markdown table of the top-N
+- `output/nyc-arts-index-full.json` — every ranked org, no cutoff
+- `output/nyc-arts-index-full.md` — Markdown table of every ranked org
 
 ## Run an individual phase
 
@@ -74,8 +80,10 @@ npm run pipeline
 | `data/phase1-candidates.json` | Phase 1 checkpoint | no |
 | `data/phase2-with-handles.json` | Phase 2 checkpoint | no |
 | `data/phase3-with-followers.json` | Phase 3 checkpoint | no |
-| `output/nyc-arts-index.json` | Final ranked JSON | **yes** |
-| `output/nyc-arts-index.md` | Final Markdown table | **yes** |
+| `output/nyc-arts-index.json` | Final top-N ranked JSON | **yes** |
+| `output/nyc-arts-index.md` | Final top-N Markdown table | **yes** |
+| `output/nyc-arts-index-full.json` | Complete untruncated ranked JSON | **yes** |
+| `output/nyc-arts-index-full.md` | Complete untruncated Markdown table | **yes** |
 
 ## Type-check only
 

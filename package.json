@@ -16,7 +16,8 @@
     "phase3": "tsx src/phase3-scrape-followers.ts",
     "phase4": "tsx src/phase4-rank.ts",
     "phase5": "tsx src/phase5-output.ts",
-    "pipeline": "tsx src/run-pipeline.ts"
+    "pipeline": "tsx src/run-pipeline.ts",
+    "test": "tsx tests/phase4-rank-limit.test.ts"
   },
   "dependencies": {
     "apify-client": "^2.10.0",

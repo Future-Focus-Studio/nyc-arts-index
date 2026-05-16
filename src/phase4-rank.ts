@@ -5,6 +5,20 @@ import type { OrgWithFollowers, RankedOrg, Category, Borough } from "./types.js"
 
 const INPUT_FILE = process.env.PHASE4_INPUT ?? "data/phase3-with-followers.json";
 const OUTPUT_FILE = process.env.PHASE4_OUTPUT ?? "output/nyc-arts-index.json";
+const OUTPUT_FULL_FILE = process.env.PHASE4_OUTPUT_FULL ?? "output/nyc-arts-index-full.json";
+
+const DEFAULT_RANK_LIMIT = 100;
+
+function resolveRankLimit(): number {
+  const raw = process.env.RANK_LIMIT;
+  if (raw === undefined || raw === "") return DEFAULT_RANK_LIMIT;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0 || !Number.isInteger(n)) {
+    console.warn(`[phase4] Ignoring invalid RANK_LIMIT=${raw}, falling back to ${DEFAULT_RANK_LIMIT}`);
+    return DEFAULT_RANK_LIMIT;
+  }
+  return n;
+}
 
 const VALID_CATEGORIES: ReadonlySet<Category> = new Set([
   "museum",
@@ -45,7 +59,7 @@ async function fileExists(p: string): Promise<boolean> {
   }
 }
 
-export function rankOrgs(input: OrgWithFollowers[], limit = 100): RankedOrg[] {
+export function rankAllOrgs(input: OrgWithFollowers[]): RankedOrg[] {
   const filtered = input
     .filter(isArtsOrg)
     .filter((o): o is OrgWithFollowers & { instagram_handle: string; instagram_followers: number } =>
@@ -53,9 +67,8 @@ export function rankOrgs(input: OrgWithFollowers[], limit = 100): RankedOrg[] {
     );
 
   const sorted = [...filtered].sort((a, b) => b.instagram_followers - a.instagram_followers);
-  const top = sorted.slice(0, limit);
 
-  return top.map<RankedOrg>((o, idx) => ({
+  return sorted.map<RankedOrg>((o, idx) => ({
     rank: idx + 1,
     name: o.name,
     slug: o.slug,
@@ -70,7 +83,14 @@ export function rankOrgs(input: OrgWithFollowers[], limit = 100): RankedOrg[] {
   }));
 }
 
+export function rankOrgs(input: OrgWithFollowers[], limit = DEFAULT_RANK_LIMIT): RankedOrg[] {
+  return rankAllOrgs(input).slice(0, limit);
+}
+
 async function main(): Promise<void> {
+  const rankLimit = resolveRankLimit();
+  console.log(`[phase4] Applying rank limit: ${rankLimit} (set RANK_LIMIT env var to change)`);
+
   if (await fileExists(OUTPUT_FILE)) {
     console.log(`[phase4] ${OUTPUT_FILE} already exists — skipping (already done).`);
     return;
@@ -82,12 +102,17 @@ async function main(): Promise<void> {
   const data: OrgWithFollowers[] = JSON.parse(await fs.readFile(INPUT_FILE, "utf-8"));
   console.log(`[phase4] Loaded ${data.length} orgs from ${INPUT_FILE}`);
 
-  const ranked = rankOrgs(data, 100);
-  console.log(`[phase4] Ranked top ${ranked.length}`);
+  const allRanked = rankAllOrgs(data);
+  const topRanked = allRanked.slice(0, rankLimit);
+  console.log(`[phase4] Ranked ${allRanked.length} total; top ${topRanked.length} kept for primary output`);
 
   await fs.mkdir(path.dirname(OUTPUT_FILE), { recursive: true });
-  await fs.writeFile(OUTPUT_FILE, JSON.stringify(ranked, null, 2));
-  console.log(`[phase4] Wrote ${OUTPUT_FILE}`);
+  await fs.writeFile(OUTPUT_FILE, JSON.stringify(topRanked, null, 2));
+  console.log(`[phase4] Wrote ${OUTPUT_FILE} (${topRanked.length} orgs)`);
+
+  await fs.mkdir(path.dirname(OUTPUT_FULL_FILE), { recursive: true });
+  await fs.writeFile(OUTPUT_FULL_FILE, JSON.stringify(allRanked, null, 2));
+  console.log(`[phase4] Wrote ${OUTPUT_FULL_FILE} (${allRanked.length} orgs)`);
 }
 
 const isMain = import.meta.url === `file://${process.argv[1]}`;
