@@ -2,7 +2,7 @@ import "dotenv/config";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { ApifyClient } from "apify-client";
-import type { CandidateWithHandle, OrgWithFollowers } from "./types.js";
+import type { Candidate, CandidateWithHandle, OrgWithFollowers } from "./types.js";
 
 const INPUT_FILE = "data/phase2-with-handles.json";
 const OUTPUT_FILE = "data/phase3-with-followers.json";
@@ -21,6 +21,53 @@ interface FollowerRow {
 
 function normalizeHandle(h: string): string {
   return h.toLowerCase().replace(/^@/, "").trim();
+}
+
+function sourcePriority(source: Candidate["source"]): number {
+  if (source === "seed") return 0;
+  if (source === "artsy") return 1;
+  return 2;
+}
+
+function completenessScore(c: CandidateWithHandle): number {
+  let n = 0;
+  if (c.website) n++;
+  if (c.neighborhood) n++;
+  if (c.borough && c.borough !== "Unknown") n++;
+  if (c.instagram_handle_hint) n++;
+  if (c.notes) n++;
+  return n;
+}
+
+function dedupByHandle(candidates: CandidateWithHandle[]): { kept: CandidateWithHandle[]; removed: number } {
+  const byHandle = new Map<string, CandidateWithHandle>();
+  const noHandle: CandidateWithHandle[] = [];
+  let removed = 0;
+  for (const c of candidates) {
+    if (!c.instagram_handle) {
+      noHandle.push(c);
+      continue;
+    }
+    const key = normalizeHandle(c.instagram_handle);
+    const existing = byHandle.get(key);
+    if (!existing) {
+      byHandle.set(key, c);
+      continue;
+    }
+    const sa = sourcePriority(existing.source);
+    const sb = sourcePriority(c.source);
+    let winner = existing;
+    if (sb < sa) {
+      winner = c;
+    } else if (sb === sa) {
+      const ca = completenessScore(existing);
+      const cb = completenessScore(c);
+      if (cb > ca) winner = c;
+    }
+    byHandle.set(key, winner);
+    removed++;
+  }
+  return { kept: [...byHandle.values(), ...noHandle], removed };
 }
 
 function extractHandleFromUrl(u: string | undefined): string | undefined {
@@ -101,7 +148,13 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const candidates: CandidateWithHandle[] = JSON.parse(await fs.readFile(INPUT_FILE, "utf-8"));
+  const rawCandidates: CandidateWithHandle[] = JSON.parse(await fs.readFile(INPUT_FILE, "utf-8"));
+  console.log(`[phase3] Loaded ${rawCandidates.length} candidates from ${INPUT_FILE}`);
+
+  const handleDedup = dedupByHandle(rawCandidates);
+  console.log(`[phase3] Instagram handle dedup: removed ${handleDedup.removed}, kept ${handleDedup.kept.length}`);
+  const candidates = handleDedup.kept;
+
   const withHandles = candidates.filter((c): c is CandidateWithHandle & { instagram_handle: string } => Boolean(c.instagram_handle));
   console.log(`[phase3] ${withHandles.length}/${candidates.length} candidates have Instagram handles`);
 

@@ -21,10 +21,11 @@ function fmtNum(n: number): string {
   return n.toLocaleString("en-US");
 }
 
-export function renderMarkdown(orgs: RankedOrg[], title = "NYC Arts Index — Top 100"): string {
+export function renderMarkdown(orgs: RankedOrg[], title?: string): string {
   const today = new Date().toISOString().slice(0, 10);
+  const resolvedTitle = title ?? `NYC Arts Index — Top ${orgs.length}`;
   const lines: string[] = [];
-  lines.push(`# ${title}`);
+  lines.push(`# ${resolvedTitle}`);
   lines.push("");
   lines.push(`_Ranked by Instagram follower count. Generated ${today}._`);
   lines.push("");
@@ -43,7 +44,7 @@ export function renderMarkdown(orgs: RankedOrg[], title = "NYC Arts Index — To
   return lines.join("\n");
 }
 
-async function writeTable(inputPath: string, outputPath: string, title: string): Promise<void> {
+async function writeTable(inputPath: string, outputPath: string, title?: string): Promise<void> {
   const orgs: RankedOrg[] = JSON.parse(await fs.readFile(inputPath, "utf-8"));
   const md = renderMarkdown(orgs, title);
   await fs.mkdir(path.dirname(outputPath), { recursive: true });
@@ -56,10 +57,10 @@ async function main(): Promise<void> {
     console.error(`[phase5] Missing input ${INPUT_FILE}. Run phase4 first.`);
     process.exit(1);
   }
-  await writeTable(INPUT_FILE, OUTPUT_FILE, "NYC Arts Index — Top 100");
+  await writeTable(INPUT_FILE, OUTPUT_FILE);
 
   if (await fileExists(INPUT_FULL_FILE)) {
-    await writeTable(INPUT_FULL_FILE, OUTPUT_FULL_FILE, "NYC Arts Index — Full");
+    await writeTable(INPUT_FULL_FILE, OUTPUT_FULL_FILE, "NYC Arts Index — Full Index");
   } else {
     console.warn(`[phase5] No full-index input at ${INPUT_FULL_FILE} — skipping full Markdown.`);
   }

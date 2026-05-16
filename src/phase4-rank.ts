@@ -61,6 +61,10 @@ async function fileExists(p: string): Promise<boolean> {
 
 // Phase 4 is cheap (no Apify calls) and always re-runs to reflect latest phase3 data.
 
+function normalizeHandle(h: string): string {
+  return h.toLowerCase().replace(/^@/, "").trim();
+}
+
 export function rankAllOrgs(input: OrgWithFollowers[]): RankedOrg[] {
   const filtered = input
     .filter(isArtsOrg)
@@ -70,7 +74,23 @@ export function rankAllOrgs(input: OrgWithFollowers[]): RankedOrg[] {
 
   const sorted = [...filtered].sort((a, b) => b.instagram_followers - a.instagram_followers);
 
-  return sorted.map<RankedOrg>((o, idx) => ({
+  const seenHandles = new Set<string>();
+  const deduped: typeof sorted = [];
+  let dropped = 0;
+  for (const o of sorted) {
+    const key = normalizeHandle(o.instagram_handle);
+    if (seenHandles.has(key)) {
+      dropped++;
+      continue;
+    }
+    seenHandles.add(key);
+    deduped.push(o);
+  }
+  if (dropped > 0) {
+    console.log(`[phase4] Final handle dedup: dropped ${dropped} lower-ranked duplicates`);
+  }
+
+  return deduped.map<RankedOrg>((o, idx) => ({
     rank: idx + 1,
     name: o.name,
     slug: o.slug,
