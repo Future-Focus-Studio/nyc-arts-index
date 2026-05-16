@@ -1,0 +1,31 @@
+{
+  "name": "nyc-arts-index",
+  "version": "0.1.0",
+  "description": "Pipeline to discover, rank, and output the top 100 NYC arts organizations by Instagram follower count.",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "phase1": "tsx src/phase1-discover.ts",
+    "phase2": "tsx src/phase2-resolve-handles.ts",
+    "phase3": "tsx src/phase3-scrape-followers.ts",
+    "phase4": "tsx src/phase4-rank.ts",
+    "phase5": "tsx src/phase5-output.ts",
+    "pipeline": "tsx src/run-pipeline.ts"
+  },
+  "dependencies": {
+    "apify-client": "^2.10.0",
+    "axios": "^1.7.7",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.4",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.2"
+  }
+}
