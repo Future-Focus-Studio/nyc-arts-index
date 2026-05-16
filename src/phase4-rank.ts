@@ -59,6 +59,8 @@ async function fileExists(p: string): Promise<boolean> {
   }
 }
 
+// Phase 4 is cheap (no Apify calls) and always re-runs to reflect latest phase3 data.
+
 export function rankAllOrgs(input: OrgWithFollowers[]): RankedOrg[] {
   const filtered = input
     .filter(isArtsOrg)
@@ -91,10 +93,6 @@ async function main(): Promise<void> {
   const rankLimit = resolveRankLimit();
   console.log(`[phase4] Applying rank limit: ${rankLimit} (set RANK_LIMIT env var to change)`);
 
-  if (await fileExists(OUTPUT_FILE)) {
-    console.log(`[phase4] ${OUTPUT_FILE} already exists — skipping (already done).`);
-    return;
-  }
   if (!(await fileExists(INPUT_FILE))) {
     console.error(`[phase4] Missing input ${INPUT_FILE}. Run phase3 first.`);
     process.exit(1);

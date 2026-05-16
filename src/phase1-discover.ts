@@ -26,7 +26,7 @@ const SEED_LIST: Candidate[] = [
   { name: "Pioneer Works", slug: "pioneer-works", website: "https://pioneerworks.org", category: "arts-nonprofit", neighborhood: "Red Hook", borough: "Brooklyn", source: "seed" },
   { name: "Socrates Sculpture Park", slug: "socrates-sculpture-park", website: "https://socratessculpturepark.org", category: "arts-nonprofit", neighborhood: "Long Island City", borough: "Queens", source: "seed" },
   { name: "Queens Museum", slug: "queens-museum", website: "https://queensmuseum.org", category: "museum", neighborhood: "Corona", borough: "Queens", source: "seed" },
-  { name: "Brooklyn Academy of Music", slug: "bam", website: "https://www.bam.org", category: "performing-arts", neighborhood: "Fort Greene", borough: "Brooklyn", source: "seed", instagram_handle_hint: "bam" },
+  { name: "Brooklyn Academy of Music", slug: "bam", website: "https://www.bam.org", category: "performing-arts", neighborhood: "Fort Greene", borough: "Brooklyn", source: "seed", instagram_handle_hint: "brooklynacademy" },
   { name: "Lincoln Center", slug: "lincoln-center", website: "https://www.lincolncenter.org", category: "performing-arts", neighborhood: "Lincoln Square", borough: "Manhattan", source: "seed" },
   { name: "Carnegie Hall", slug: "carnegie-hall", website: "https://www.carnegiehall.org", category: "performing-arts", neighborhood: "Midtown", borough: "Manhattan", source: "seed" },
   { name: "New York City Ballet", slug: "nyc-ballet", website: "https://www.nycballet.com", category: "performing-arts", neighborhood: "Lincoln Square", borough: "Manhattan", source: "seed" },
