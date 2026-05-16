@@ -68,72 +68,92 @@ function inferCategory(name: string, types?: string[]): Category {
   return "arts-nonprofit";
 }
 
-interface ArtsyPartner {
-  name: string;
-  href?: string;
-  website?: string;
-  locations?: Array<{ city?: string; address?: string }>;
+interface ArtsySearchEdge {
+  node?: {
+    displayLabel?: string;
+    href?: string;
+  };
+}
+
+interface ArtsySearchResponse {
+  data?: {
+    searchConnection?: {
+      edges?: ArtsySearchEdge[];
+    };
+  };
 }
 
 async function fetchArtsy(): Promise<Candidate[]> {
-  // Artsy public GraphQL (X-APP-TOKEN optional; falls back to empty list on failure).
-  const query = `{
-    partners(type: GALLERY, near: "40.7128,-74.0060", maxDistance: 25, first: 100) {
-      name
-      href
-      website
-      locations { city address }
-    }
-  }`;
-  try {
-    const resp = await axios.post<{ data?: { partners?: ArtsyPartner[] } }>(
-      "https://metaphysics-cdn.artsy.net/v2",
-      { query },
-      { timeout: 15000, headers: { "Content-Type": "application/json" } }
-    );
-    const partners = resp.data?.data?.partners ?? [];
-    return partners
-      .filter((p) => p.name)
-      .map<Candidate>((p) => {
-        const loc = p.locations?.[0];
-        return {
-          name: p.name,
-          slug: slugify(p.name),
-          website: p.website,
-          category: "gallery",
-          neighborhood: loc?.city,
-          borough: inferBorough(loc?.address ?? loc?.city),
+  const searchQueries = [
+    "museum new york city",
+    "gallery new york city",
+    "arts center new york city",
+    "performing arts new york",
+    "contemporary art new york",
+  ];
+  const seen = new Set<string>();
+  const out: Candidate[] = [];
+  for (const q of searchQueries) {
+    const gql = `{
+      searchConnection(query: ${JSON.stringify(q)}, first: 20, entities: [PROFILE]) {
+        edges {
+          node {
+            displayLabel
+            href
+          }
+        }
+      }
+    }`;
+    try {
+      const resp = await axios.post<ArtsySearchResponse>(
+        "https://metaphysics-cdn.artsy.net/v2",
+        { query: gql },
+        { timeout: 15000, headers: { "Content-Type": "application/json" } }
+      );
+      const edges = resp.data?.data?.searchConnection?.edges ?? [];
+      for (const edge of edges) {
+        const name = edge.node?.displayLabel;
+        const href = edge.node?.href;
+        if (!name) continue;
+        const slug = slugify(name);
+        if (seen.has(slug)) continue;
+        seen.add(slug);
+        out.push({
+          name,
+          slug,
+          website: href ? `https://www.artsy.net${href}` : undefined,
+          category: inferCategory(name),
+          borough: "Unknown",
           source: "artsy",
-        };
-      });
-  } catch (err) {
-    console.warn(`[phase1] Artsy fetch failed (continuing with empty result): ${(err as Error).message}`);
-    return [];
+        });
+      }
+    } catch (err) {
+      console.warn(`[phase1] Artsy fetch failed for "${q}" (continuing): ${(err as Error).message}`);
+    }
   }
+  return out;
 }
 
 interface GoogleMapsItem {
   title?: string;
   website?: string;
   address?: string;
-  neighborhood?: string;
-  city?: string;
   categoryName?: string;
-  categories?: string[];
+  url?: string;
 }
 
 async function fetchGoogleMaps(client: ApifyClient): Promise<Candidate[]> {
   const searchTerms = [
-    "art museum New York",
-    "art gallery Manhattan",
-    "art gallery Brooklyn",
-    "performing arts center New York",
-    "cultural center New York",
+    "art museum New York City",
+    "art gallery New York City",
+    "performing arts center New York City",
+    "dance company New York City",
+    "theater company New York City",
+    "contemporary art center New York City",
   ];
   try {
-    const run = await client.actor("apify/google-maps-scraper").call({
+    const run = await client.actor("compass~crawler-google-places").call({
       searchStringsArray: searchTerms,
-      locationQuery: "New York, NY",
       maxCrawledPlacesPerSearch: 40,
       language: "en",
       skipClosedPlaces: true,
@@ -151,8 +171,7 @@ async function fetchGoogleMaps(client: ApifyClient): Promise<Candidate[]> {
         name: item.title,
         slug,
         website: item.website,
-        category: inferCategory(item.title, item.categories ?? (item.categoryName ? [item.categoryName] : [])),
-        neighborhood: item.neighborhood,
+        category: inferCategory(item.title, item.categoryName ? [item.categoryName] : []),
         borough: inferBorough(item.address),
         source: "google-maps",
       });
