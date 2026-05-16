@@ -115,8 +115,7 @@ async function main(): Promise<void> {
   console.log(`[phase2] Resolved ${handleMap.size}/${urls.length} handles via crawler`);
 
   const enriched: CandidateWithHandle[] = candidates.map((c) => {
-    if (!c.website) return c;
-    const handle = handleMap.get(c.website);
+    const handle = c.instagram_handle_hint ?? (c.website ? handleMap.get(c.website) : undefined);
     if (!handle) return c;
     return {
       ...c,

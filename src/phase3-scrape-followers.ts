@@ -66,8 +66,9 @@ async function runPrimary(client: ApifyClient, handles: string[]): Promise<Map<s
 async function runFallback(client: ApifyClient, handles: string[]): Promise<Map<string, number>> {
   const map = new Map<string, number>();
   const usernames = handles.map(normalizeHandle);
+  const directUrls = usernames.map((u) => `https://www.instagram.com/${u}/`);
   const run = await client.actor(FALLBACK_ACTOR).call({
-    usernames,
+    directUrls,
     resultsType: "details",
     resultsLimit: 1,
   });

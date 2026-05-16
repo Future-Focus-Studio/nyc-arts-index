@@ -23,6 +23,7 @@ export interface Candidate {
   borough?: Borough;
   source: "seed" | "artsy" | "google-maps";
   notes?: string;
+  instagram_handle_hint?: string;
 }
 
 export interface CandidateWithHandle extends Candidate {
